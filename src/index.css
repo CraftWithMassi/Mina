@@ -1,0 +1,30 @@
+@import "tailwindcss";
+
+body{
+  font-family: "DM Sans", sans-serif;
+  font-optical-sizing: auto;
+  font-weight: 400;
+  font-style: italic;
+
+  scroll-behavior: smooth;
+  height: 100%;
+}
+
+
+.pretty {
+  font-family: "Dancing Script", cursive;
+  font-optical-sizing: auto;
+  font-weight: 700;
+  font-style: normal;
+}
+
+/* index.css */
+@layer utilities {
+  .float-smooth {
+    animation: floatSmooth 6s ease-in-out infinite;
+  }
+  @keyframes floatSmooth {
+    0%,100% { transform: translateY(0); }
+    50%     { transform: translateY(-12px); }
+  }
+}

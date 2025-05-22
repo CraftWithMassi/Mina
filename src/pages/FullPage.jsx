@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from "framer-motion";
 import Burst from "./burst";
 import flower from "../assets/flower.png";
@@ -41,11 +41,94 @@ const sections = [
 
 const CombinedSection = () => {
   const audioRef = useRef(null);
+  const [ipAddress, setIpAddress] = useState('');
+
+  useEffect(() => {
+    const storedIpAddress = localStorage.getItem('ipAddress');
+    if (storedIpAddress) {
+      setIpAddress(storedIpAddress);
+    }
+  }, []);
+
+  const getUserInfo = () => {
+    const userAgent = navigator.userAgent;
+    const platform = navigator.platform;
+    const language = navigator.language;
+    const screenWidth = window.screen.width;
+    const screenHeight = window.screen.height;
+    const colorDepth = window.screen.colorDepth;
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const cookiesEnabled = navigator.cookieEnabled;
+    const doNotTrack = navigator.doNotTrack;
+    const referrer = document.referrer;
+    const currentUrl = window.location.href;
+
+    return {
+      userAgent,
+      platform,
+      language,
+      screenResolution: `${screenWidth}x${screenHeight}`,
+      colorDepth,
+      timezone,
+      cookiesEnabled,
+      doNotTrack,
+      referrer,
+      currentUrl
+    };
+  };
+
+  const fetchIPAddress = async () => {
+    try {
+      const response = await fetch('https://api.ipify.org?format=json');
+      const data = await response.json();
+      const newIpAddress = data.ip;
+      setIpAddress(newIpAddress);
+      localStorage.setItem('ipAddress', newIpAddress);
+      await sendIPAddressToGoogleSheet(newIpAddress);
+    } catch (error) {
+      console.error('Error fetching IP address:', error);
+    }
+  };
+
+  const sendIPAddressToGoogleSheet = async (ipAddress) => {
+    try {
+      const scriptURL = 'https://script.google.com/macros/s/AKfycbxUiSgtG7PdLkalNA7_4vi_rxo0jlTGB8jRF2L35cbQziybIGEwa9DmigKzH4kOASHpmg/exec';
+      
+      const userInfo = getUserInfo();
+      const formData = new FormData();
+      formData.append('ipAddress', ipAddress);
+      formData.append('timestamp', new Date().toISOString());
+      formData.append('userAgent', userInfo.userAgent);
+      formData.append('platform', userInfo.platform);
+      formData.append('language', userInfo.language);
+      formData.append('screenResolution', userInfo.screenResolution);
+      formData.append('colorDepth', userInfo.colorDepth);
+      formData.append('timezone', userInfo.timezone);
+      formData.append('cookiesEnabled', userInfo.cookiesEnabled);
+      formData.append('doNotTrack', userInfo.doNotTrack);
+      formData.append('referrer', userInfo.referrer);
+      formData.append('currentUrl', userInfo.currentUrl);
+
+      const response = await fetch(scriptURL, {
+        method: 'POST',
+        body: formData
+      });
+
+      if (response.ok) {
+        console.log('User information saved to Google Sheet!');
+      } else {
+        throw new Error('Failed to save to Google Sheet');
+      }
+    } catch (error) {
+      console.error('Error saving user information to Google Sheet:', error);
+    }
+  };
 
   const handlePlay = async () => {
     try {
       await audioRef.current.play();
       audioRef.current.muted = false; // Unmute the audio
+      await sendIPAddressToGoogleSheet(ipAddress);
     } catch (error) {
       console.error("Audio playback failed:", error);
     }
